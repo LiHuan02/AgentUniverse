@@ -24,9 +24,14 @@ class MyLLM:
 
         self.client = OpenAI(api_key=apiKey, base_url=baseUrl, timeout=timeout)
 
-    def think(self, messages: List[Dict[str, str]], temperature: float = 0) -> str:
+    def think(self, messages: List[Dict[str, str]], temperature: float = 0, stream: bool = False) -> str:
         """
         调用大语言模型进行思考，并返回其响应。
+        
+        Args:
+            messages: 对话消息列表
+            temperature: 采样温度
+            stream: 是否流式输出，默认 False
         """
         print(f"🧠 正在调用 {self.model} 模型...")
         try:
@@ -34,19 +39,24 @@ class MyLLM:
                 model=self.model,
                 messages=messages,
                 temperature=temperature,
-                stream=True,
+                stream=stream,
             )
-            
-            # 处理流式响应
-            collected_content = []
-            for chunk in response:
-                if not chunk.choices:
-                    continue
-                content = chunk.choices[0].delta.content or ""
-                print(content, end="", flush=True)
-                collected_content.append(content)
-            print()  # 在流式输出结束后换行
-            return "".join(collected_content)
+
+            if stream:
+                # 流式响应
+                collected_content = []
+                for chunk in response:
+                    if not chunk.choices:
+                        continue
+                    content = chunk.choices[0].delta.content or ""
+                    print(content, end="", flush=True)
+                    collected_content.append(content)
+                print()  # 换行
+                return "".join(collected_content)
+            else:
+                # 非流式响应
+                content = response.choices[0].message.content
+                return content
 
         except Exception as e:
             print(f"❌ 调用LLM API时发生错误: {e}")
